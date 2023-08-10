@@ -5,10 +5,13 @@ import tkinter as tk
 import platform as sys_platform
 import os
 import sys
+from backups.mpmath import mp
 
 # Very hacky workaround corner
 os.environ["PYOPENCL_NO_CACHE"] = "0"
 sys.setrecursionlimit(5000)
+
+mp.dps = 50 # Decimal place amount
 
 width, height = 1000, 1000
 xmin, xmax = -2.5, 1.5
@@ -60,13 +63,58 @@ __kernel void mandelbrot(__global uchar *image, const unsigned int width, const 
 }
 """
 
-def compute_mandelbrot():
+def mandelbrot_mpmath(xmin, xmax, ymin, ymax, width, height, max_iter):
+    # Create an empty image
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+
+    # Calculate pixel size
+    dx = (xmax - xmin) / width
+    dy = (ymax - ymin) / height
+
+    # Precompute color palette
+    palette = np.array([(i % 8 * 32, i % 16 * 16, i % 32 * 8) for i in range(max_iter)], dtype=np.uint8)
+
+    for x in range(width):
+        for y in range(height):
+            zx, zy = x * dx + xmin, y * dy + ymin
+            c = mp(zx, zy)
+            z = mp(0, 0)
+            for i in range(max_iter):
+                if abs(z) > 2.0:
+                    break 
+                z = z * z + c
+
+            # Use precomputed color palette
+            image[y, x] = palette[i]
+    
+    return image
+
+def should_use_mpmath(xmin, xmax, ymin, ymax):
+    # Example: if the range of x or y is below a certain threshold, 
+    # it indicates a high zoom level, so we switch to mpmath
+    x_range = xmax - xmin
+    y_range = ymax - ymin
+    threshold = 1e-20  # example threshold value, adjust as needed
+    return x_range < threshold or y_range < threshold
+
+def compute_mandelbrot_gpu():
     global image
     global_size = (width, height)
     program.mandelbrot(queue, global_size, None, image_buffer, np.uint32(width), np.uint32(height), 
                        np.uint32(max_iter), np.double(threshold), 
                        np.double(xmin), np.double(xmax), np.double(ymin), np.double(ymax))
     cl.enqueue_copy(queue, image, image_buffer)
+    return image
+
+def compute_mandelbrot_mpmath():
+    return mandelbrot_mpmath(xmin, xmax, ymin, ymax, width, height, max_iter)
+
+def compute_mandelbrot():
+    # Check if we've crossed the precision threshold
+    if should_use_mpmath(xmin, xmax, ymin, ymax):
+        return compute_mandelbrot_mpmath()
+    else:
+        return compute_mandelbrot_gpu()
     
 def update_display():
     pil_image = Image.fromarray(image)
@@ -104,6 +152,10 @@ def handle_zoom(event):
     xmax = x_mandel + new_width / 2
     ymin = y_mandel - new_height / 2
     ymax = y_mandel + new_height / 2
+    # Print canvas dimensions after zooming
+    print(f"Canvas Dimensions after Zoom:")
+    print(f"xmin: {xmin}, xmax: {xmax}")
+    print(f"ymin: {ymin}, ymax: {ymax}\n")
     compute_mandelbrot()
     update_display()
 
