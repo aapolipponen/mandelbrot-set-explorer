@@ -4,7 +4,7 @@ import tkinter as tk
 import platform as sys_platform
 import os
 import sys
-from compute_fractals import compute_mandelbrot, compute_julia, compute_burning_ship, compute_multibrot, compute_tricorn, compute_celtic, compute_perpendicular_mandelbrot, call_image_buffer, call_image
+from compute_fractals import compute_mandelbrot, compute_perpendicular_mandelbrot, compute_multibrot, compute_julia, compute_perpendicular_julia, compute_modified_julia, compute_burning_ship, compute_tricorn, compute_celtic, compute_newtons_fractal, compute_minus_1i_fractal, compute_glynn, compute_bianca, compute_polynomial_roots, call_image_buffer, call_image
 
 # Very hacky workaround corner
 os.environ["PYOPENCL_NO_CACHE"] = "0"
@@ -13,9 +13,8 @@ sys.setrecursionlimit(5000)
 xmin, xmax = -2.5, 1.5
 ymin, ymax = -2, 2
 
-max_iter = 500
+max_iter = 5
 threshold = 4.0
-selected_fractal = "Mandelbrot"
 d = 2.0
 
 zoom_factor = 1.5
@@ -27,25 +26,47 @@ def compute_fractal():
     if fractal == "Mandelbrot":
         compute_mandelbrot(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
         multibrot_scale.pack_forget()
-    elif fractal == "Julia":
+    elif fractal == "Perpendicular Mandelbrot":
+        compute_perpendicular_mandelbrot(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack_forget()
+    elif fractal == "Multibrot":
+        threshold_scale.set(10)
+        compute_multibrot(width, height, image, image_buffer, max_iter, d, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack(side=tk.LEFT, padx=10)  # Show slider for d
+    elif fractal == "Julia Set":
         compute_julia(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
-        threshold_scale.set(1000)
+        multibrot_scale.pack_forget()
+    elif fractal == "Perpendicular Julia Set":
+        compute_perpendicular_julia(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack_forget()
+    elif fractal == "Modified Trigonometric Julia Set":
+        compute_modified_julia(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
         multibrot_scale.pack_forget()
     elif fractal == "Burning Ship":
         compute_burning_ship(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
         multibrot_scale.pack_forget()
-    elif fractal == "Multibrot":
-        compute_multibrot(width, height, image, image_buffer, max_iter, d, threshold, xmin, xmax, ymin, ymax)
-        multibrot_scale.pack(side=tk.LEFT, padx=10)  # Show slider for d
     elif fractal == "Tricorn":
         compute_tricorn(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
         multibrot_scale.pack_forget()
     elif fractal == "Celtic":
         compute_celtic(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
         multibrot_scale.pack_forget()
-    elif fractal == "Perpendicular Mandelbrot":
-        compute_perpendicular_mandelbrot(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+    elif fractal == "Newton's fractal":
+        compute_newtons_fractal(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
         multibrot_scale.pack_forget()
+    elif fractal == "-1i Fractal":
+        compute_minus_1i_fractal(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack_forget()
+    elif fractal == "Glynn Fractal":
+        compute_glynn(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack_forget()
+    elif fractal == "Bianca Fractal":
+        compute_bianca(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack_forget()
+    elif fractal == "Polynomial Roots":
+        compute_polynomial_roots(width, height, image, image_buffer, max_iter, threshold, xmin, xmax, ymin, ymax)
+        multibrot_scale.pack_forget()
+        
     update_display()
 
 def update_display():
@@ -140,7 +161,7 @@ toolbar_frame = tk.Frame(window)
 toolbar_frame.pack(side=tk.TOP, fill=tk.X)
 
 # Toolbar fractal switcher
-fractal_types = ["Mandelbrot", "Julia", "Burning Ship", "Multibrot", "Tricorn", "Celtic", "Perpendicular Mandelbrot"]
+fractal_types = ["Mandelbrot", "Perpendicular Mandelbrot", "Multibrot", "Julia Set", "Perpendicular Julia Set", "Modified Trigonometric Julia", "Burning Ship", "Tricorn", "Celtic", "Newton's fractal", "-1i Fractal", "Glynn fractal", "Bianca Fractal", "Polynomial Roots"]
 fractal_var = tk.StringVar(window)
 fractal_var.set(fractal_types[0])  # Default value = Mandelbrot
 
@@ -182,7 +203,7 @@ canvas.photos = []
 
 def set_max_iter(val):
     global max_iter
-    max_iter = int(val)
+    max_iter = int(float(val))
     compute_fractal()
     update_display()
 
@@ -192,12 +213,12 @@ def set_threshold(val):
     compute_fractal()
     update_display()
 
-max_iter_scale = tk.Scale(toolbar_frame, from_=1, to=5000, orient=tk.HORIZONTAL, label="Max Iterations",
+max_iter_scale = tk.Scale(toolbar_frame, from_=1, to=3000, resolution=1, orient=tk.HORIZONTAL, label="Max Iterations",
                           command=set_max_iter)
 max_iter_scale.set(max_iter)
 max_iter_scale.pack(side=tk.LEFT, padx=10)
 
-threshold_scale = tk.Scale(toolbar_frame, from_=0.1, to=100, resolution=0.1, orient=tk.HORIZONTAL, label="Threshold",
+threshold_scale = tk.Scale(toolbar_frame, from_=0.1, to=1000, resolution=0.1, orient=tk.HORIZONTAL, label="Threshold",
                            command=set_threshold)
 threshold_scale.set(threshold)
 threshold_scale.pack(side=tk.LEFT, padx=10)
@@ -209,7 +230,7 @@ def set_multibrot_power(val):
 
 multibrot_power = tk.DoubleVar(value=2.0)
 
-multibrot_scale = tk.Scale(toolbar_frame, from_=0.5, to=10, resolution=0.1, orient=tk.HORIZONTAL, label="Multibrot Power",
+multibrot_scale = tk.Scale(toolbar_frame, from_=-5, to=1, resolution=0.1, orient=tk.HORIZONTAL, label="Multibrot Power",
                    command=set_multibrot_power)
 
 compute_fractal()
