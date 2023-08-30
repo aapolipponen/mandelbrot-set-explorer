@@ -13,7 +13,7 @@ sys.setrecursionlimit(5000)
 xmin, xmax = -2.5, 1.5
 ymin, ymax = -2, 2
 
-max_iter = 5
+max_iter = 200
 threshold = 4.0
 d = 2.0
 
